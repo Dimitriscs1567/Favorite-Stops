@@ -9,9 +9,12 @@ class AddStop extends StatefulWidget {
 
 class _AddStopState extends State<AddStop> {
   List<dynamic> _stops;
+  List<dynamic> _buses;
   bool _loading = true;
+  bool _loadingBuses = false;
   String _selectedStop = "";
-  List<DropdownMenuItem<String>> _items = [];
+  String _selectedBus = "";
+  List<DropdownMenuItem> _busesItems = [];
 
   @override
   void initState() {
@@ -19,14 +22,8 @@ class _AddStopState extends State<AddStop> {
       setState(() {
         _stops = value;
         _selectedStop = _stops[0]["id"].toString();
-        _items = _stops.map((stop) => DropdownMenuItem<String>(
-            value: stop["id"].toString(),
-            child: Text(stop["name"],
-              style: TextStyle(color: Colors.black),
-            ),
-          )
-        ).toList();
         _loading = false;
+        _getBuses(_selectedStop);
       });
     });
 
@@ -45,26 +42,12 @@ class _AddStopState extends State<AddStop> {
               Text("Choose station:",
                 style: TextStyle(fontSize: 22.0),
               ),
-              SearchableDropdown.single(
-                value: _selectedStop,
-                items: _items,
-                style: TextStyle(fontSize: 18.0),
-                displayClearIcon: false,
-                onChanged: (value){
-                  setState(() {
-                    _selectedStop = value;
-                  });
-                },
-                searchFn: (keyword, items){
-                  List<int> result = [];
-                  for(int i=0; i<items.length; i++){
-                    if(items[i].child.data.toLowerCase().contains(keyword.toLowerCase())) {
-                      result.add(i);
-                    }
-                  }
-                  return result;
-                },
+              _getStopsAsWidget(),
+              Padding(padding: const EdgeInsets.all(20.0),),
+              Text("Choose Bus:",
+                style: TextStyle(fontSize: 22.0),
               ),
+              _getBusesAsWidget(),
             ],
           ):
           Center(
@@ -73,5 +56,67 @@ class _AddStopState extends State<AddStop> {
         ),
       ),
     );
+  }
+
+  Widget _getStopsAsWidget(){
+    return SearchableDropdown.single(
+      value: _selectedStop,
+      items: _stops.map((stop) => DropdownMenuItem<String>(
+        value: stop["id"].toString(),
+        child: Text(stop["name"],
+          style: TextStyle(color: Colors.black),
+        ),
+      )).toList(),
+      style: TextStyle(fontSize: 18.0),
+      displayClearIcon: false,
+      onChanged: (value){
+        setState(() {
+          _selectedStop = value;
+          _getBuses(_selectedStop);
+        });
+      },
+      searchFn: (keyword, items){
+        List<int> result = [];
+        for(int i=0; i<items.length; i++){
+          if(items[i].child.data.toLowerCase().contains(keyword.toLowerCase())) {
+            result.add(i);
+          }
+        }
+        return result;
+      },
+    );
+  }
+
+  Widget _getBusesAsWidget() {
+    return !_loadingBuses && _selectedBus.isNotEmpty ? DropdownButton(
+      value: _selectedBus,
+      items: _buses.map((bus) => DropdownMenuItem<String>(
+        value: bus["name"],
+        child: Text(bus["name"],
+          style: TextStyle(color: Colors.black),
+        ),
+      )).toList(),
+      style: TextStyle(fontSize: 18.0),
+      onChanged: (value){
+        setState(() {
+          _selectedBus = value;
+        });
+      },
+    ): CircularProgressIndicator();
+  }
+
+  void _getBuses(String id){
+    setState(() {
+      _loadingBuses = true;
+      Request.getAllBuses(id).then((value){
+        if(value != null){
+          setState(() {
+            _buses = value;
+            _selectedBus = _buses[0]["name"];
+            _loadingBuses = false;
+          });
+        }
+      });
+    });
   }
 }
