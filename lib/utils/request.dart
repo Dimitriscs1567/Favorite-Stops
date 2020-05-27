@@ -4,8 +4,12 @@ import 'auth.dart';
 import '';
 
 class Request{
+  static final year = DateTime.now().year.toString();
+  static final month = DateTime.now().month.toString();
+  static final day = DateTime.now().day.toString();
+
   static final String _stopsUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/location.allstops?format=json';
-  static final String _busesUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=2020%2F05%2F20&time=08%3A00&timeSpan=120&format=json';
+  static final String _busesUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=$year%2F$month%2F$day&time=08%3A00&timeSpan=120&format=json';
 
   static Future<List<dynamic>> getAllStops() async {
     String token = await Auth.getAccessToken();

@@ -1,4 +1,5 @@
 import 'package:busstop/utils/request.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:searchable_dropdown/searchable_dropdown.dart';
 
@@ -12,8 +13,9 @@ class _AddStopState extends State<AddStop> {
   List<dynamic> _buses;
   bool _loading = true;
   bool _loadingBuses = false;
+  bool _noBuses = false;
   String _selectedStop = "";
-  String _selectedBus = "";
+  List<int> _selectedBuses = [];
   List<DropdownMenuItem> _busesItems = [];
 
   @override
@@ -36,18 +38,56 @@ class _AddStopState extends State<AddStop> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: !_loading ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: !_loading ? Stack(
             children: <Widget>[
-              Text("Choose station:",
-                style: TextStyle(fontSize: 22.0),
+              ListView(
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.only(bottom: 40.0),
+                    alignment: Alignment.center,
+                    child: Text("New Favorite Stop",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 26.0, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Text("Choose station:",
+                    style: TextStyle(fontSize: 22.0),
+                  ),
+                  _getStopsAsWidget(),
+                  Padding(padding: const EdgeInsets.all(20.0),),
+                  Text("Choose Buses:",
+                    style: TextStyle(fontSize: 22.0),
+                  ),
+                  _getBusesAsWidget(),
+                  Container(
+                    padding: const EdgeInsets.only(top: 40.0),
+                    alignment: Alignment.center,
+                    child: RaisedButton(
+                      color: Colors.green[700],
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0),
+                      child: Text("Save",
+                        style: TextStyle(fontSize: 25.0),
+                      ),
+                      onPressed: (){
+
+                      },
+                    ),
+                  ),
+                ],
               ),
-              _getStopsAsWidget(),
-              Padding(padding: const EdgeInsets.all(20.0),),
-              Text("Choose Bus:",
-                style: TextStyle(fontSize: 22.0),
+              Positioned(
+                top: -8.0,
+                left: -8.0,
+                child: IconButton(
+                  padding: const EdgeInsets.all(0.0),
+                  icon: Icon(Icons.arrow_back),
+                  iconSize: 30.0,
+                  color: Colors.black,
+                  onPressed: (){
+                    Navigator.pop(context);
+                  },
+                ),
               ),
-              _getBusesAsWidget(),
             ],
           ):
           Center(
@@ -70,10 +110,12 @@ class _AddStopState extends State<AddStop> {
       style: TextStyle(fontSize: 18.0),
       displayClearIcon: false,
       onChanged: (value){
-        setState(() {
-          _selectedStop = value;
-          _getBuses(_selectedStop);
-        });
+        if(_selectedStop.compareTo(value) != 0){
+          setState(() {
+            _selectedStop = value;
+            _getBuses(_selectedStop);
+          });
+        }
       },
       searchFn: (keyword, items){
         List<int> result = [];
@@ -88,21 +130,64 @@ class _AddStopState extends State<AddStop> {
   }
 
   Widget _getBusesAsWidget() {
-    return !_loadingBuses && _selectedBus.isNotEmpty ? DropdownButton(
-      value: _selectedBus,
-      items: _buses.map((bus) => DropdownMenuItem<String>(
-        value: bus["name"],
-        child: Text(bus["name"],
-          style: TextStyle(color: Colors.black),
-        ),
-      )).toList(),
-      style: TextStyle(fontSize: 18.0),
-      onChanged: (value){
-        setState(() {
-          _selectedBus = value;
-        });
-      },
-    ): CircularProgressIndicator();
+    if(!_loadingBuses ){
+      if(_noBuses){
+        return Container(
+          child: Text("There are no available buses from this stop!",
+            style: TextStyle(fontSize: 20.0),
+          ),
+        );
+      }
+      else{
+        return SearchableDropdown.multiple(
+          selectedItems: _selectedBuses,
+          items: _buses.map((bus) => DropdownMenuItem<String>(
+            value: bus["name"],
+            child: Text(bus["name"],
+              style: TextStyle(color: Colors.black),
+            ),
+          )).toList(),
+          style: TextStyle(fontSize: 18.0),
+          selectedValueWidgetFn: (item){
+            return Container(
+              width: 150,
+              padding: const EdgeInsets.all(8.0),
+              margin: const EdgeInsets.only(bottom: 8.0),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(),
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              child: Text(item,
+                style: TextStyle(color: Colors.black),
+              ),
+            );
+          },
+          validator: (selectedItems){
+            if(selectedItems.isEmpty){
+              return "Please select at least one bus";
+            }
+
+            return null;
+          },
+          doneButton: (selectedItems, context){
+            return Container();
+          },
+          closeButton: (selectedItems){
+            return selectedItems.isNotEmpty ? 'Done' : Container();
+          },
+          onChanged: (values){
+            print(values);
+            setState(() {
+              _selectedBuses = values;
+            });
+          },
+        );
+      }
+    }
+    else{
+      return Center(child: CircularProgressIndicator());
+    }
   }
 
   void _getBuses(String id){
@@ -111,9 +196,16 @@ class _AddStopState extends State<AddStop> {
       Request.getAllBuses(id).then((value){
         if(value != null){
           setState(() {
+            _noBuses = false;
             _buses = value;
-            _selectedBus = _buses[0]["name"];
+            _selectedBuses = [0];
             _loadingBuses = false;
+          });
+        }
+        else{
+          setState(() {
+            _loadingBuses = false;
+            _noBuses = true;
           });
         }
       });
