@@ -8,10 +8,10 @@ class Data{
     await sp.setStringList(id, busNames);
   }
 
-  static Future<Map<String, List<String>>> getStops(String id, List<String> busNames) async{
+  static Future<Map<String, List<String>>> getStops() async{
     SharedPreferences sp = await SharedPreferences.getInstance();
 
-    Map<String, List<String>> result;
+    Map<String, List<String>> result = {};
     sp.getKeys().forEach((key) {
       result.addAll({key: sp.getStringList(key)});
     });

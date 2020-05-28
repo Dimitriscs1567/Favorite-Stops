@@ -1,5 +1,5 @@
+import 'package:busstop/utils/data.dart';
 import 'package:busstop/utils/request.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:searchable_dropdown/searchable_dropdown.dart';
 
@@ -14,9 +14,11 @@ class _AddStopState extends State<AddStop> {
   bool _loading = true;
   bool _loadingBuses = false;
   bool _noBuses = false;
+  bool _saveLoading = false;
   String _selectedStop = "";
+  String _selectedStopName = "";
   List<int> _selectedBuses = [];
-  List<DropdownMenuItem> _busesItems = [];
+  List<DropdownMenuItem> _busesItems;
 
   @override
   void initState() {
@@ -24,6 +26,7 @@ class _AddStopState extends State<AddStop> {
       setState(() {
         _stops = value;
         _selectedStop = _stops[0]["id"].toString();
+        _selectedStopName = _stops[0]["name"].toString();
         _loading = false;
         _getBuses(_selectedStop);
       });
@@ -65,11 +68,24 @@ class _AddStopState extends State<AddStop> {
                     child: RaisedButton(
                       color: Colors.green[700],
                       padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 10.0),
-                      child: Text("Save",
+                      child: !_saveLoading ? Text("Save",
                         style: TextStyle(fontSize: 25.0),
-                      ),
+                      ) : CircularProgressIndicator(),
                       onPressed: (){
+                        if(!_saveLoading){
+                          setState(() {
+                            _saveLoading = true;
+                          });
 
+                          List<String> toSave = _selectedBuses.map((busIndex) {
+                                return _busesItems[busIndex].value.toString();
+                          }).toList();
+                          toSave.add(_selectedStopName);
+
+                          Data.saveStop(_selectedStop, toSave).whenComplete(
+                                () => Navigator.pop(context)
+                          );
+                        }
                       },
                     ),
                   ),
@@ -113,6 +129,8 @@ class _AddStopState extends State<AddStop> {
         if(_selectedStop.compareTo(value) != 0){
           setState(() {
             _selectedStop = value;
+            _selectedStopName = _stops.firstWhere(
+                  (stop) => stop['id'].toString().compareTo(value) == 0)['name'];
             _getBuses(_selectedStop);
           });
         }
@@ -130,7 +148,7 @@ class _AddStopState extends State<AddStop> {
   }
 
   Widget _getBusesAsWidget() {
-    if(!_loadingBuses ){
+    if(!_loadingBuses){
       if(_noBuses){
         return Container(
           child: Text("There are no available buses from this stop!",
@@ -141,12 +159,7 @@ class _AddStopState extends State<AddStop> {
       else{
         return SearchableDropdown.multiple(
           selectedItems: _selectedBuses,
-          items: _buses.map((bus) => DropdownMenuItem<String>(
-            value: bus["name"],
-            child: Text(bus["name"],
-              style: TextStyle(color: Colors.black),
-            ),
-          )).toList(),
+          items: _busesItems,
           style: TextStyle(fontSize: 18.0),
           selectedValueWidgetFn: (item){
             return Container(
@@ -158,7 +171,7 @@ class _AddStopState extends State<AddStop> {
                 border: Border.all(),
                 borderRadius: BorderRadius.circular(20.0),
               ),
-              child: Text(item,
+              child: Text(item.split('/')[0] + ' (Pl. ' + item.split('/')[1] + ')',
                 style: TextStyle(color: Colors.black),
               ),
             );
@@ -177,7 +190,6 @@ class _AddStopState extends State<AddStop> {
             return selectedItems.isNotEmpty ? 'Done' : Container();
           },
           onChanged: (values){
-            print(values);
             setState(() {
               _selectedBuses = values;
             });
@@ -198,6 +210,7 @@ class _AddStopState extends State<AddStop> {
           setState(() {
             _noBuses = false;
             _buses = value;
+            _fillBusesItems();
             _selectedBuses = [0];
             _loadingBuses = false;
           });
@@ -208,6 +221,21 @@ class _AddStopState extends State<AddStop> {
             _noBuses = true;
           });
         }
+      });
+    });
+  }
+
+  void _fillBusesItems(){
+    _busesItems = [];
+
+    _buses.forEach((bus) {
+      bus['platforms'].forEach((platform){
+        _busesItems.add(DropdownMenuItem<String>(
+          value: bus["name"] + '/' + '$platform',
+          child: Text(bus["name"] + ' ' + '(Pl. $platform)',
+            style: TextStyle(color: Colors.black),
+          ),
+        ));
       });
     });
   }
