@@ -15,6 +15,7 @@ class _HomePageState extends State<HomePage> {
 
   Map<String, Map<String, List<DateTime>>> formattedData = {};
   bool isLoading = true;
+  bool gettingData = true;
   Timer timer;
 
   @override
@@ -25,7 +26,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if(!isLoading && timer == null){
+    if(isLoading && !gettingData){
+      getData();
+    }
+
+    if(!isLoading && (timer == null || !timer.isActive)){
       timer = Timer.periodic(Duration(seconds: 50), (_){
         getData();
       });
@@ -36,11 +41,16 @@ class _HomePageState extends State<HomePage> {
         child: isLoading ? Center(
           child: CircularProgressIndicator(),
         ):
-        PageView(
+        (formattedData.keys.isNotEmpty ? PageView(
           children: formattedData.keys.map(
               (stop) => StopWidget(stop: formattedData[stop], stopName: stop,)
           ).toList(),
-        ),
+        ) : Center(
+          child: Text('You do not have any favorite stops!',
+            style: TextStyle(fontSize: 25.0),
+            textAlign: TextAlign.center,
+          ),
+        )),
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add,
@@ -49,6 +59,10 @@ class _HomePageState extends State<HomePage> {
         ),
         elevation: 10.0,
         onPressed: (){
+          setState(() {
+            timer.cancel();
+            isLoading = true;
+          });
           Navigator.push(context, MaterialPageRoute(
             builder: (context) => AddStop()
           ));
@@ -58,6 +72,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void getData(){
+    gettingData = true;
     Data.getStops().then((allStops) async{
       Map<String, Map<String, List<DateTime>>> tempData = {};
 
@@ -72,6 +87,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         formattedData = tempData;
         isLoading = false;
+        gettingData = false;
       });
     });
   }
