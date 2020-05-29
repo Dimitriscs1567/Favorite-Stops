@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:busstop/pages/add_stop.dart';
 import 'package:busstop/utils/data.dart';
 import 'package:busstop/utils/request.dart';
+import 'package:busstop/widgets/StopWidget.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -11,26 +14,32 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
 
   Map<String, Map<String, List<DateTime>>> formattedData = {};
+  bool isLoading = true;
+  Timer timer;
 
   @override
   void initState() {
-    Data.getStops().then((allStops) async{
-      for(String stop in allStops.keys){
-        formattedData.addAll({
-          allStops[stop].last: await Request.getNextBuses(stop, allStops[stop]),
-        });
-      }
-
-      print(formattedData);
-    });
+    getData();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    if(!isLoading && timer == null){
+      timer = Timer.periodic(Duration(seconds: 50), (_){
+        getData();
+      });
+    }
+
     return Scaffold(
       body: SafeArea(
-        child: Container(
+        child: isLoading ? Center(
+          child: CircularProgressIndicator(),
+        ):
+        PageView(
+          children: formattedData.keys.map(
+              (stop) => StopWidget(stop: formattedData[stop], stopName: stop,)
+          ).toList(),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -46,5 +55,24 @@ class _HomePageState extends State<HomePage> {
         },
       ),
     );
+  }
+
+  void getData(){
+    Data.getStops().then((allStops) async{
+      Map<String, Map<String, List<DateTime>>> tempData = {};
+
+      if(allStops.keys.length > 0){
+        for(String stop in allStops.keys){
+          tempData.addAll({
+            allStops[stop].last: await Request.getNextBuses(stop, allStops[stop]),
+          });
+        }
+      }
+
+      setState(() {
+        formattedData = tempData;
+        isLoading = false;
+      });
+    });
   }
 }

@@ -11,7 +11,7 @@ class Request{
 
   static final String _stopsUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/location.allstops?format=json';
   static final String _busesUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=$year%2F$month%2F$day&time=08%3A00&timeSpan=120&format=json';
-  static final String _nextBusesUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=$year%2F$month%2F$day&time=$hour%3A$minutes&timeSpan=60&format=json';
+  static final String _nextBusesUrl = 'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=$year%2F$month%2F$day&time=$hour%3A$minutes&timeSpan=65&format=json';
 
 
   static Future<List<dynamic>> getAllStops() async {
@@ -83,6 +83,7 @@ class Request{
   static Future<Map<String, List<DateTime>>> getNextBuses(String id, List<String> buses) async{
     String token = await Auth.getAccessToken();
     String url = _nextBusesUrl.replaceFirst("_id", id);
+    buses = buses.sublist(0, buses.length-1);
 
     final response = await http.get(url,
       headers: {
@@ -100,19 +101,17 @@ class Request{
           ? jsonDecode(response.body)["DepartureBoard"]["Departure"]
           : [jsonDecode(response.body)["DepartureBoard"]["Departure"]];
 
+      buses.forEach((bus) {
+        result.addAll({
+          bus.split('/')[0] + '/' + bus.split('/')[1]: [],
+        });
+      });
+
       all.forEach((bus) {
         if(_goodBus(bus, buses)){
-          if(result.containsKey(bus['name'] + '/' + bus['track'])){
-            result[bus['name'] + '/' + bus['track']].add(
-                DateTime.parse(bus['date'] + ' ' + bus['time'] + ':00')
-            );
-          }
-          else{
-            result.addAll({
-              bus['name'] + '/' + bus['track']
-                  : [DateTime.parse(bus['date'] + ' ' + bus['time'] + ':00')],
-            });
-          }
+          result[bus['name'] + '/' + bus['track']].add(
+              DateTime.parse(bus['date'] + ' ' + bus['time'] + ':00')
+          );
         }
       });
 
@@ -125,7 +124,6 @@ class Request{
 
   static bool _goodBus(Map<String, dynamic> bus, List<String> goodBuses) {
     bool result = false;
-    goodBuses = goodBuses.sublist(0, goodBuses.length-1);
 
     goodBuses.forEach((goodBus) {
       String goodName = goodBus.split('/')[0];
