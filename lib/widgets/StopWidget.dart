@@ -15,28 +15,32 @@ class StopWidget extends StatelessWidget {
       width: MediaQuery.of(context).size.width,
       child: Column(
         children: <Widget>[
-          Text(stopName,
+          Text(
+            stopName,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold),
           ),
           Padding(padding: const EdgeInsets.all(30.0)),
-          stop!=null ? Expanded(
-            child: ListView.builder(
-              itemCount: stop.keys.length,
-              itemBuilder: (context, index){
-                String busName = stop.keys.toList()[index];
-                return BusWidget(
-                  busName: busName,
-                  arrivals: stop[busName],
-                );
-              },
-            ),
-          ) : Center(
-            child: Text('No buses selected for this stop.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22.0),
-            ),
-          ),
+          stop != null
+              ? Expanded(
+                  child: ListView.builder(
+                    itemCount: stop.keys.length,
+                    itemBuilder: (context, index) {
+                      String busName = stop.keys.toList()[index];
+                      return BusWidget(
+                        busName: busName,
+                        arrivals: stop[busName],
+                      );
+                    },
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    'No busses selected for this stop.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 22.0),
+                  ),
+                ),
         ],
       ),
     );

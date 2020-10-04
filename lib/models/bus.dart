@@ -7,8 +7,20 @@ class Bus {
 
   Bus.fromJson(dynamic bus) {
     _name = bus["name"];
-    _platform = bus["track"];
+    _platform = bus["track"] ?? bus["platform"];
     _type = bus["type"];
+  }
+
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> result = Map<String, dynamic>();
+
+    result.addAll({
+      "name": _name,
+      "platform": _platform,
+      "type": _type,
+    });
+
+    return result;
   }
 
   String get name => this._name;

@@ -13,9 +13,9 @@ class Request {
 
   static final String _stopsUrl =
       'https://api.vasttrafik.se/bin/rest.exe/v2/location.allstops?format=json';
-  static final String _busesUrl =
+  static final String _bussesUrl =
       'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=$year%2F$month%2F$day&time=08%3A00&timeSpan=180&format=json';
-  static final String _nextBusesUrl =
+  static final String _nextBussesUrl =
       'https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=_id&date=$year%2F$month%2F$day&time=$hour%3A$minutes&timeSpan=65&format=json';
 
   static Future<List<Stop>> getAllStops() async {
@@ -25,8 +25,6 @@ class Request {
       _stopsUrl,
       headers: {"Authorization": "Bearer " + token},
     );
-
-    print(response.statusCode);
 
     if (response.statusCode == 200) {
       List<dynamic> result =
@@ -38,9 +36,9 @@ class Request {
     return null;
   }
 
-  static Future<List<Bus>> getAllBuses(String id) async {
+  static Future<List<Bus>> getAllBusses(String id) async {
     String token = await Auth.getAccessToken();
-    String url = _busesUrl.replaceFirst("_id", id);
+    String url = _bussesUrl.replaceFirst("_id", id);
 
     final response = await http.get(
       url,
@@ -76,11 +74,9 @@ class Request {
     return null;
   }
 
-  static Future<Map<String, List<DateTime>>> getNextBuses(
-      String id, List<String> buses) async {
+  static Future<Map<String, List<DateTime>>> getNextBusses(Stop stop) async {
     String token = await Auth.getAccessToken();
-    String url = _nextBusesUrl.replaceFirst("_id", id);
-    buses = buses.sublist(0, buses.length - 1);
+    String url = _nextBussesUrl.replaceFirst("_id", stop.id);
 
     final response = await http.get(
       url,
@@ -98,14 +94,14 @@ class Request {
           ? jsonDecode(response.body)["DepartureBoard"]["Departure"]
           : [jsonDecode(response.body)["DepartureBoard"]["Departure"]];
 
-      buses.forEach((bus) {
+      stop.busses.forEach((bus) {
         result.addAll({
-          bus.split('/')[0] + '/' + bus.split('/')[1]: [],
+          bus.name + '/' + bus.platform: [],
         });
       });
 
       all.forEach((bus) {
-        if (_goodBus(bus, buses)) {
+        if (_goodBus(bus, stop.busses)) {
           result[bus['name'] + '/' + bus['track']]
               .add(DateTime.parse(bus['date'] + ' ' + bus['time'] + ':00'));
         }
@@ -117,12 +113,12 @@ class Request {
     }
   }
 
-  static bool _goodBus(Map<String, dynamic> bus, List<String> goodBuses) {
+  static bool _goodBus(Map<String, dynamic> bus, List<Bus> goodBusses) {
     bool result = false;
 
-    goodBuses.forEach((goodBus) {
-      String goodName = goodBus.split('/')[0];
-      String goodPlatform = goodBus.split('/')[1];
+    goodBusses.forEach((goodBus) {
+      String goodName = goodBus.name;
+      String goodPlatform = goodBus.platform;
 
       if (bus['name'].toString().compareTo(goodName) == 0 &&
           bus['track'].toString().compareTo(goodPlatform) == 0) {
