@@ -24,7 +24,9 @@ class NewDataController extends GetxController {
   }
 
   Future getStops() async {
-    allStops.addAll(await Request.getAllStops());
+    if (allStops.isEmpty) {
+      allStops.addAll(await Request.getAllStops());
+    }
   }
 
   Future getBusses() async {
@@ -50,5 +52,7 @@ class NewDataController extends GetxController {
 
     await Storage.saveStop(stopToSave);
     saving.value = false;
+    selectedBusses.clear();
+    selectedStop.value = "";
   }
 }

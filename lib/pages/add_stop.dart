@@ -25,7 +25,6 @@ class AddStop extends StatelessWidget {
                     ),
                   ),
                   GetX<NewDataController>(
-                    init: NewDataController(),
                     builder: (controller) {
                       if (controller.allStops.isEmpty) {
                         return Center(

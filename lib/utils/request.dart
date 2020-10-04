@@ -74,7 +74,7 @@ class Request {
     return null;
   }
 
-  static Future<Map<String, List<DateTime>>> getNextBusses(Stop stop) async {
+  static Future<void> getNextBusses(Stop stop) async {
     String token = await Auth.getAccessToken();
     String url = _nextBussesUrl.replaceFirst("_id", stop.id);
 
@@ -85,36 +85,26 @@ class Request {
 
     if (response.statusCode == 200) {
       if (jsonDecode(response.body)["DepartureBoard"]["Departure"] == null) {
-        return null;
+        return;
       }
 
-      Map<String, List<DateTime>> result = {};
       List<dynamic> all = (jsonDecode(response.body)["DepartureBoard"]
               ["Departure"] is List<dynamic>)
           ? jsonDecode(response.body)["DepartureBoard"]["Departure"]
           : [jsonDecode(response.body)["DepartureBoard"]["Departure"]];
 
-      stop.busses.forEach((bus) {
-        result.addAll({
-          bus.name + '/' + bus.platform: [],
-        });
-      });
-
       all.forEach((bus) {
-        if (_goodBus(bus, stop.busses)) {
-          result[bus['name'] + '/' + bus['track']]
+        final busToUpdate = _goodBus(bus, stop.busses);
+        if (busToUpdate != null) {
+          busToUpdate.timetable
               .add(DateTime.parse(bus['date'] + ' ' + bus['time'] + ':00'));
         }
       });
-
-      return result;
-    } else {
-      return null;
     }
   }
 
-  static bool _goodBus(Map<String, dynamic> bus, List<Bus> goodBusses) {
-    bool result = false;
+  static Bus _goodBus(Map<String, dynamic> bus, List<Bus> goodBusses) {
+    Bus result;
 
     goodBusses.forEach((goodBus) {
       String goodName = goodBus.name;
@@ -122,7 +112,7 @@ class Request {
 
       if (bus['name'].toString().compareTo(goodName) == 0 &&
           bus['track'].toString().compareTo(goodPlatform) == 0) {
-        result = true;
+        result = goodBus;
       }
     });
 
